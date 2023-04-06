@@ -128,37 +128,17 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
         kmeans.fit(X)
         wcss.append(kmeans.inertia_)
 
-
-    second_deriv = np.gradient(np.gradient(wcss))
-
-    # Find the index where the second derivative changes sign from positive to negative
-    if len(np.where(np.diff(np.sign(second_deriv)))[0]) == 0:
-        inflection_point = 1
-    else:
+    try:
+        second_deriv = np.gradient(np.gradient(wcss))
         inflection_point = np.where(np.diff(np.sign(second_deriv)))[0][0]
-
-    # Print the inflection point
-    # print("Inflection point index:", inflection_point)
-    # print("Inflection point value:", wcss[inflection_point])
-
-    knee = inflection_point
-
-    # uncomment to plot the elbow plot
-    # Plot the WCSS values and mark the knee point
-    # plt.plot(range(1, len(coordinates)), wcss)
-    # plt.title('Knee Method')
-    # plt.xlabel('Number of Clusters')
-    # plt.ylabel('WCSS')
-    # plt.vlines(knee, plt.ylim()[0], plt.ylim()[1], linestyles='dashed')
-    # plt.show()
+        knee = inflection_point
+    except:
+        print(" *** EXCEPT ***")
+        knee = 1
 
     # Cluster the GPS coordinates using the optimal number of clusters
     kmeans = KMeans(n_clusters=knee, init='k-means++', max_iter=300, n_init=10, random_state=0)
     y_kmeans = kmeans.fit_predict(X)
-
-    # Print the cluster centers and labels
-    # print("Cluster centers:\n", kmeans.cluster_centers_)
-    # print("Cluster labels:", y_kmeans)
 
     # --------------------------------------
 
@@ -175,14 +155,12 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
 
     # Create a map with the markers sized by the weight of each center point
     for i, row in weighted_gps_data.iterrows():
-        print("YYOOO")
-        print(row["weight"])
         folium.CircleMarker([row['latitude'], row['longitude']],
                             radius=row['weight'] * 2, # CHANGE THIS WEIGHT
                             fill=True,
                             color=color,
                             fill_color=color,
                             fill_opacity=0.5,#).add_to(clustered_map)
-                            tooltip=team_label).add_to(clustered_map)
+                            tooltip=(team_label + ", " + str(int(row['weight'])))).add_to(clustered_map)
         
     return clustered_map
