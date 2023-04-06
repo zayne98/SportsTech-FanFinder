@@ -6,10 +6,6 @@ import pandas as pd
 import folium
 import random
 
-# Todo: 
-#   One value
-#   No values
-#   Duplicate values
 # Currently supports at most 15 teams (15 potential colors to choose from. Can add more)
 
 # --------------------------------------
@@ -44,10 +40,14 @@ clustered_map_center = [gps_data['latitude'].mean(), gps_data['longitude'].mean(
 clustered_map_zoom = 12
 clustered_map = folium.Map(location=clustered_map_center, zoom_start=clustered_map_zoom)
 
+total_weighted_gps_data = pd.DataFrame([], columns=['latitude', 'longitude', 'weight', 'team'])
+
+
 # --------------------------------------
 
 
 def plot_one_team(gps_data_subset, color, team_label):
+    global total_weighted_gps_data
     # add points to the unclustered map
     for i, row in gps_data_subset.iterrows():
         folium.CircleMarker([row['latitude'], row['longitude']],
@@ -89,7 +89,9 @@ def plot_one_team(gps_data_subset, color, team_label):
                     'longitude': kmeans.cluster_centers_[:, 1],
                     'weight': weights})
 
-    # weighted_gps_data.to_csv('weighted_gps_data.csv', index=False)
+    weighted_gps_data['team']=team_label
+
+    total_weighted_gps_data = pd.concat([total_weighted_gps_data, weighted_gps_data], ignore_index=True, sort=False)
 
     # --------------------------------------
 
@@ -123,3 +125,5 @@ else:
 
 unclustered_map.save('unclustered_unweighted_map.html')
 clustered_map.save('weighted_map.html')
+
+total_weighted_gps_data.to_csv('weighted_gps_data.csv', index=False,header=False)

@@ -5,7 +5,7 @@ import folium
 # Use to generate random coordinates in pittsburgh
 
 # set values as you wish
-teams = 15   # <= 15 teams (only 15 colors currently listed)
+teams = 8   # <= 15 teams (only 15 colors currently listed)
 coords_per_team = 50
 team_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
 
