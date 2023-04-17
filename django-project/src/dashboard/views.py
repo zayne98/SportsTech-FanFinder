@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.urls import reverse_lazy, reverse
 from .models import Data
 from .forms import AddLocationForm
 
@@ -37,6 +38,30 @@ def add_location(request):
         form = AddLocationForm()
         context['form'] = form
         return render(request, 'dashboard/add_location.html', context)
+    
+
+def increase_team_A(request):
+    if (request.method == "POST"):
+        t_name = "A"
+        lat = 40.462325
+        long = -80.031731
+
+        new_data = Data(team_name=t_name, latitude=lat, longitude=long)
+        new_data.save()
+
+    return HttpResponseRedirect(reverse('map-clustered'))
+
+    
+def increase_team_B(request):
+    if (request.method == "POST"):
+        t_name = "B"
+        lat = 40.460813
+        long = -79.928361
+
+        new_data = Data(team_name=t_name, latitude=lat, longitude=long)
+        new_data.save()
+
+    return HttpResponseRedirect(reverse('map-clustered'))
 
 
 def cluster(request):

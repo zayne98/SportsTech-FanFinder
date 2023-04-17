@@ -8,7 +8,20 @@ Home Page
 <div class="container">
     <div class="row mt-4">
         <div class="col-md-10 offset-md-1">
-            {{heat_map|safe}}
+            <div class="col text-center">
+                {{heat_map|safe}}
+
+                <form action="{% url 'increaseA' %}" method="POST">
+                    {% csrf_token %}
+                    <button class="btn btn-primary mr-1" type="submit" name="A-buttion" style="background-color:blue">Increase size of A</button>
+                </form>
+            
+                <form action="{% url 'increaseB' %}" method="POST">
+                {% csrf_token %}
+                <button class="btn btn-primary mr-1" type="submit" name="B-buttion" style="background-color:red">Increase size of B</button>
+                </form>
+            </div>
+
         </div>
     </div>
 </div>
