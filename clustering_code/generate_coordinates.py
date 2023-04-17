@@ -5,8 +5,8 @@ import folium
 # Use to generate random coordinates in pittsburgh
 
 # set values as you wish
-teams = 8   # <= 15 teams (only 15 colors currently listed)
-coords_per_team = 50
+teams = 4  # <= 15 teams (only 15 colors currently listed)
+coords_per_team = 30
 team_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
 
 # Define the latitude and longitude range (Pittsburgh, PA)
