@@ -12,6 +12,12 @@ import random
 import geocoder
 import math
 import sys
+import osmnx as ox
+import networkx as nx
+
+
+ox.settings.log_console=True
+ox.settings.use_cache=True
 
 
 from django.http import HttpResponseRedirect
@@ -47,8 +53,9 @@ def add_random_coords(request):
     if (request.method == "POST"):
         # set values as you wish
         teams = 3  # <= 15 teams (only 15 colors currently listed)
-        coords_per_team = 5
-        team_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+        coords_per_team = 10
+        team_names = ["Celtics", "Nets", "Warriors", "Knicks", "76ers", "Lakers", "Rockets", 
+                      "Bulls", "Cavaliers", "Raptors", "Heat", "Magic", "Blazers", "Mavericks", "Suns"]
 
         # Define the latitude and longitude range (Pittsburgh, PA)
         lat_min, lat_max = 40.40, 40.50
@@ -64,6 +71,42 @@ def add_random_coords(request):
 
     return HttpResponseRedirect(reverse('map-clustered'))
     
+def route(request):
+    place     = 'Pittsburgh, Pennsylvania, United States'
+    mode      = 'drive'
+    optimizer = 'length'
+
+    # create graph from OSM within the boundaries of some 
+    # geocodable place(s)
+    graph = ox.graph_from_place(place, network_type = mode)
+    # find the nearest node to the start location
+    orig_node = ox.distance.nearest_nodes(graph, request.session.get('start_long'),
+                                        request.session.get('start_lat'))
+    # find the nearest node to the end location
+    dest_node = ox.distance.nearest_nodes(graph, request.session.get('end_long'),
+                                        request.session.get('end_lat'))
+    #  find the shortest path
+    shortest_route = nx.shortest_path(graph,
+                                    orig_node,
+                                    dest_node,
+                                    weight=optimizer)
+    shortest_route_map = ox.plot_route_folium(graph, shortest_route, tiles='openstreetmap')
+
+    folium.Marker(location=[request.session.get('start_lat'), request.session.get('start_long')],
+                  icon=folium.Icon(color="red"),
+                  tooltip="Your location!").add_to(shortest_route_map)
+
+    folium.Marker(location=[request.session.get('end_lat'), request.session.get('end_long')],
+                      icon=folium.Icon(color="green"),
+                      tooltip="Closest Cluster Center!").add_to(shortest_route_map)
+
+    heat_map = shortest_route_map._repr_html_()
+    context = {
+        'heat_map': heat_map
+    }
+
+    return render(request, 'dashboard/map_clustered.html', context)
+
 
 def submit_user_info(request):
     if (request.method == "POST"):
@@ -90,7 +133,7 @@ def submit_user_info(request):
     for team in teams:
         data_subset = gps_data[gps_data['team_name'] == team]
         #print(data_subset)
-        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, input_team_string, g.lat, g.lng)
+        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, input_team_string, g.lat, g.lng, request)
         team_index += 1
 
     folium.Marker(location=[g.lat, g.lng],
@@ -130,7 +173,7 @@ def cluster(request):
     for team in teams:
         data_subset = gps_data[gps_data['team_name'] == team]
         #print(data_subset)
-        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, None, None, None)
+        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, None, None, None, request)
         team_index += 1
 
     heat_map = clustered_map._repr_html_()
@@ -185,7 +228,7 @@ def plot_one_team_uncluster(gps_data_subset, color, team_label, unclustered_map)
 
     return unclustered_map
 
-def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map, input_team_string, input_lat, input_long):
+def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map, input_team_string, input_lat, input_long, request):
     
     # find the optimal number of clusters to use for k-means
     coordinates = gps_data_subset[['latitude', 'longitude']].values
@@ -247,10 +290,16 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map, inp
                 closest_lat = row['latitude']
                 closest_long = row['longitude']
                 closest_dist = dist
+
+                request.session['start_lat'] = input_lat
+                request.session['start_long'] = input_long
+                request.session['end_lat'] = closest_lat
+                request.session['end_long'] = closest_long
         
     if (found):
         folium.Marker(location=[closest_lat, closest_long],
                       icon=folium.Icon(color="green"),
                       tooltip="Closest Cluster Center!").add_to(clustered_map)
+
 
     return clustered_map

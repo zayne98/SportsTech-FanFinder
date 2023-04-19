@@ -9,5 +9,6 @@ urlpatterns = [
 
     #these are used by the buttons
     path('addRandomCoords/', views.add_random_coords, name='addRandomCoords'),
-    path('submitInfo/', views.submit_user_info, name='submitInfo')
+    path('submitInfo/', views.submit_user_info, name='submitInfo'),
+    path('routePath/', views.route, name='routePath'),
 ]
