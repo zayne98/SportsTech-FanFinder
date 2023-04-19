@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import folium
 import random
+import geocoder
+
 
 from django.http import HttpResponseRedirect
 
@@ -32,7 +34,6 @@ def add_location(request):
             long = form.cleaned_data.get("longitude")
             new_data = Data(team_name=t_name, latitude=lat, longitude=long)
             new_data.save()
-            print(new_data)
             return HttpResponseRedirect("/thanks/")
     else:
         form = AddLocationForm()
@@ -50,7 +51,6 @@ def increase_team_A(request):
         new_data.save()
 
     return HttpResponseRedirect(reverse('map-clustered'))
-
     
 def increase_team_B(request):
     if (request.method == "POST"):
@@ -62,6 +62,42 @@ def increase_team_B(request):
         new_data.save()
 
     return HttpResponseRedirect(reverse('map-clustered'))
+
+def submit_user_info(request):
+    if (request.method == "POST"):
+        location_string = request.POST.get("location-string")
+        team_string = request.POST.get("team-string")
+
+        g = geocoder.osm(location_string)
+
+        #new_data = Data(team_name=team_string, latitude=g.lat, longitude=g.lng)
+        #new_data.save()
+
+    data = Data.objects.all()
+
+    gps_data = pd.DataFrame(list(data.values('team_name','latitude','longitude')))
+    map_center = [gps_data['latitude'].mean(), gps_data['longitude'].mean()]
+    map_zoom = 12
+    clustered_map = folium.Map(location=map_center, zoom_start=map_zoom)
+
+    teams = set(gps_data['team_name'].unique())
+    team_index = 0
+    for team in teams:
+        data_subset = gps_data[gps_data['team_name'] == team]
+        #print(data_subset)
+        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map)
+        team_index += 1
+
+    folium.Marker(location=[g.lat, g.lng]).add_to(clustered_map)
+
+    heat_map = clustered_map._repr_html_()
+    context = {
+        'heat_map': heat_map
+    }
+
+    return render(request, 'dashboard/map_clustered.html', context)
+
+    #return HttpResponseRedirect(reverse('map-clustered'))
 
 
 def cluster(request):
@@ -86,6 +122,7 @@ def cluster(request):
     team_index = 0
     for team in teams:
         data_subset = gps_data[gps_data['team_name'] == team]
+        #print(data_subset)
         clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map)
         team_index += 1
 
@@ -173,7 +210,11 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
 
     weighted_gps_data = pd.DataFrame({'latitude': kmeans.cluster_centers_[:, 0],
                     'longitude': kmeans.cluster_centers_[:, 1],
-                    'weight': weights})
+                    'weight': weights, 
+                    'team-name': team_label})
+
+    print("Weighted GPS Data")
+    print (weighted_gps_data)
 
     # --------------------------------------
 
@@ -185,7 +226,7 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
                             fill=True,
                             color=color,
                             fill_color=color,
-                            fill_opacity=0.5,#).add_to(clustered_map)
+                            fill_opacity=0.5,
                             tooltip=(team_label + ", " + str(int(row['weight'])))).add_to(clustered_map)
         
     return clustered_map

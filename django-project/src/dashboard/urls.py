@@ -9,5 +9,6 @@ urlpatterns = [
 
     #these are used by the buttons
     path('increaseA/', views.increase_team_A, name='increaseA'),
-    path('increaseB/', views.increase_team_B, name='increaseB')
+    path('increaseB/', views.increase_team_B, name='increaseB'),
+    path('submitInfo/', views.submit_user_info, name='submitInfo')
 ]

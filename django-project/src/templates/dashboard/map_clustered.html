@@ -11,18 +11,28 @@ Home Page
             <div class="col text-center">
                 {{heat_map|safe}}
 
-                <form action="{% url 'increaseA' %}" method="POST">
-                    {% csrf_token %}
-                    <button class="btn btn-primary mr-1" type="submit" name="A-buttion" style="background-color:blue">Increase size of A</button>
-                </form>
-            
-                <form action="{% url 'increaseB' %}" method="POST">
-                {% csrf_token %}
-                <button class="btn btn-primary mr-1" type="submit" name="B-buttion" style="background-color:red">Increase size of B</button>
-                </form>
+                <div class="input-group mb-3">
+                   
+                    <div class="input-group-append">
+                        <form action="{% url 'submitInfo' %}" method="POST">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" id="basic-addon3">Type in your location</span>
+                                <input type="text" class="form-control" name="location-string" aria-describedby="basic-addon3">
+
+                            </div>
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" id="basic-addon3">Type in your team</span>
+                                <input type="text" class="form-control" name="team-string" aria-describedby="basic-addon3">
+                            </div>
+                            {% csrf_token %}
+                            <button class="btn btn-primary mr-1" type="submit" name="location-button" style="background-color:red">Submit Info</button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
         </div>
     </div>
 </div>
+
 {% endblock %}
