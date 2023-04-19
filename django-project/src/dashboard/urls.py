@@ -8,7 +8,6 @@ urlpatterns = [
     path('thanks/', views.thanks, name='thanks'),
 
     #these are used by the buttons
-    path('increaseA/', views.increase_team_A, name='increaseA'),
-    path('increaseB/', views.increase_team_B, name='increaseB'),
+    path('addRandomCoords/', views.add_random_coords, name='addRandomCoords'),
     path('submitInfo/', views.submit_user_info, name='submitInfo')
 ]

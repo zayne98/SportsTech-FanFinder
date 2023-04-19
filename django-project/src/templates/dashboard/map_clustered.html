@@ -12,6 +12,11 @@ Home Page
                 {{heat_map|safe}}
 
                 <div class="input-group mb-3">
+
+                    <form action="{% url 'addRandomCoords' %}" method="POST">
+                        {% csrf_token %}
+                        <button class="btn btn-primary mr-1" type="submit" name="coords-buttion" style="background-color:blue">Add Random Coords</button>
+                    </form>
                    
                     <div class="input-group-append">
                         <form action="{% url 'submitInfo' %}" method="POST">

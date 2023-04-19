@@ -10,6 +10,8 @@ import pandas as pd
 import folium
 import random
 import geocoder
+import math
+import sys
 
 
 from django.http import HttpResponseRedirect
@@ -41,34 +43,37 @@ def add_location(request):
         return render(request, 'dashboard/add_location.html', context)
     
 
-def increase_team_A(request):
+def add_random_coords(request):
     if (request.method == "POST"):
-        t_name = "A"
-        lat = 40.462325
-        long = -80.031731
+        # set values as you wish
+        teams = 3  # <= 15 teams (only 15 colors currently listed)
+        coords_per_team = 5
+        team_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
 
-        new_data = Data(team_name=t_name, latitude=lat, longitude=long)
-        new_data.save()
+        # Define the latitude and longitude range (Pittsburgh, PA)
+        lat_min, lat_max = 40.40, 40.50
+        lon_min, lon_max = -80.10, -79.90
+
+        # generate coordinates
+        for t in range(teams):
+            for c in range(coords_per_team):
+                lat = round(random.uniform(lat_min, lat_max), 6)
+                long = round(random.uniform(lon_min, lon_max), 6)
+                new_data = Data(team_name=team_names[t], latitude=lat, longitude=long)
+                new_data.save()
 
     return HttpResponseRedirect(reverse('map-clustered'))
     
-def increase_team_B(request):
-    if (request.method == "POST"):
-        t_name = "B"
-        lat = 40.460813
-        long = -79.928361
-
-        new_data = Data(team_name=t_name, latitude=lat, longitude=long)
-        new_data.save()
-
-    return HttpResponseRedirect(reverse('map-clustered'))
 
 def submit_user_info(request):
     if (request.method == "POST"):
-        location_string = request.POST.get("location-string")
-        team_string = request.POST.get("team-string")
+        input_location_string = request.POST.get("location-string")
+        input_team_string = request.POST.get("team-string")
 
-        g = geocoder.osm(location_string)
+        g = geocoder.osm(input_location_string)
+
+        print("Corresponding Lat and Long:")
+        print(str(g.lat) + str(g.lng))
 
         #new_data = Data(team_name=team_string, latitude=g.lat, longitude=g.lng)
         #new_data.save()
@@ -85,10 +90,12 @@ def submit_user_info(request):
     for team in teams:
         data_subset = gps_data[gps_data['team_name'] == team]
         #print(data_subset)
-        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map)
+        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, input_team_string, g.lat, g.lng)
         team_index += 1
 
-    folium.Marker(location=[g.lat, g.lng]).add_to(clustered_map)
+    folium.Marker(location=[g.lat, g.lng],
+                  icon=folium.Icon(color="red"),
+                  tooltip="Your location!").add_to(clustered_map)
 
     heat_map = clustered_map._repr_html_()
     context = {
@@ -123,7 +130,7 @@ def cluster(request):
     for team in teams:
         data_subset = gps_data[gps_data['team_name'] == team]
         #print(data_subset)
-        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map)
+        clustered_map = plot_one_team_cluster(data_subset, colors[team_index], team, clustered_map, None, None, None)
         team_index += 1
 
     heat_map = clustered_map._repr_html_()
@@ -178,7 +185,7 @@ def plot_one_team_uncluster(gps_data_subset, color, team_label, unclustered_map)
 
     return unclustered_map
 
-def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
+def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map, input_team_string, input_lat, input_long):
     
     # find the optimal number of clusters to use for k-means
     coordinates = gps_data_subset[['latitude', 'longitude']].values
@@ -213,11 +220,15 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
                     'weight': weights, 
                     'team-name': team_label})
 
-    print("Weighted GPS Data")
-    print (weighted_gps_data)
+    #print("Weighted GPS Data")
+    #print (weighted_gps_data)
 
     # --------------------------------------
 
+    found = False
+    closest_lat = 0
+    closest_long = 0
+    closest_dist = sys.maxsize
 
     # Create a map with the markers sized by the weight of each center point
     for i, row in weighted_gps_data.iterrows():
@@ -229,4 +240,17 @@ def plot_one_team_cluster(gps_data_subset, color, team_label, clustered_map):
                             fill_opacity=0.5,
                             tooltip=(team_label + ", " + str(int(row['weight'])))).add_to(clustered_map)
         
+        if (input_team_string != None and (input_team_string == team_label)):
+            dist = math.hypot(row['latitude']-input_lat, row['longitude']-input_long)
+            if (dist < closest_dist):
+                found = True
+                closest_lat = row['latitude']
+                closest_long = row['longitude']
+                closest_dist = dist
+        
+    if (found):
+        folium.Marker(location=[closest_lat, closest_long],
+                      icon=folium.Icon(color="green"),
+                      tooltip="Closest Cluster Center!").add_to(clustered_map)
+
     return clustered_map
